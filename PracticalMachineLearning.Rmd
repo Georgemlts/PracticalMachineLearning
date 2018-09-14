@@ -1,0 +1,148 @@
+
+
+JOHNS HOPKINS PRACTICAL MACHINE LEARNING COURSERA ASSIGNMENT
+
+The project described below is destined for the course "Practical Machine Learning" of Johns Hopkins University via Coursera. 
+Firstly the background of the project will be mentioned and then the methodology which was used will be described in steps.
+
+Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+Source: https://www.coursera.org/learn/practical-machine-learning/supplement/PvInj/course-project-instructions-read-first
+
+Data
+
+The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment.
+
+Source: https://www.coursera.org/learn/practical-machine-learning/supplement/PvInj/course-project-instructions-read-first
+
+Libraries
+
+It is crucial in order to have the ideal results to use the packages mentioned below.
+
+```{r}
+library(caret);
+library(ggplot2);
+library(lattice);
+```
+
+Data Insertion
+
+First of all we download the file using the command:
+
+```{r}
+download.file()
+```
+Loading the seed
+```{r}
+set.seed(12345)
+
+```
+Cleaning Data 
+
+An important step before training is to clear both the training and the testing data
+```{r}
+trainfile <- read.csv("pmltraining.csv")
+nzvdata <- nearZeroVar(trainfile, saveMetrics = TRUE)
+training01 <- trainfile[, !nzvdata$nzv]
+dim(training01)
+clnd <- (colSums(is.na(training01)) == 0)
+training <- training01[, clnd]
+traini <- subset(training, select=c(roll_belt,pitch_belt,yaw_belt,total_accel_belt,
+                                    gyros_belt_x,gyros_belt_y,gyros_belt_z,accel_belt_x,accel_belt_y,accel_belt_z,magnet_belt_x,magnet_belt_y,magnet_belt_z,roll_arm,pitch_arm,yaw_arm,total_accel_arm,
+                                    gyros_arm_x,gyros_arm_y,gyros_arm_z,accel_arm_x,accel_arm_y,accel_arm_z,magnet_arm_x,magnet_arm_y,magnet_arm_z,
+                                    roll_dumbbell,pitch_dumbbell,yaw_dumbbell,total_accel_dumbbell,
+                                    gyros_dumbbell_x,gyros_dumbbell_y,gyros_dumbbell_z,accel_dumbbell_x,accel_dumbbell_y,accel_dumbbell_z,magnet_dumbbell_x,magnet_dumbbell_y,magnet_dumbbell_z,roll_forearm,pitch_forearm,yaw_forearm,
+                                    gyros_forearm_x,gyros_forearm_y,gyros_forearm_z,accel_forearm_x,accel_forearm_y,accel_forearm_z,magnet_forearm_x,magnet_forearm_y,magnet_forearm_z, classe))
+
+testfil <- read.csv("testfile.csv")
+nzvdata <- nearZeroVar(testfil, saveMetrics = TRUE)
+testit01 <- testfil[, !nzvdata$nzv]
+dim(testit01)
+clnd <- (colSums(is.na(testit01)) == 0)
+testit <- testit01[, clnd]
+testit <- subset(testit, select=c(roll_belt,pitch_belt,yaw_belt,total_accel_belt,
+                                  gyros_belt_x,gyros_belt_y,gyros_belt_z,accel_belt_x,accel_belt_y,accel_belt_z,magnet_belt_x,magnet_belt_y,magnet_belt_z,roll_arm,pitch_arm,yaw_arm,total_accel_arm,
+                                  gyros_arm_x,gyros_arm_y,gyros_arm_z,accel_arm_x,accel_arm_y,accel_arm_z,magnet_arm_x,magnet_arm_y,magnet_arm_z,
+                                  roll_dumbbell,pitch_dumbbell,yaw_dumbbell,total_accel_dumbbell,
+                                  gyros_dumbbell_x,gyros_dumbbell_y,gyros_dumbbell_z,accel_dumbbell_x,accel_dumbbell_y,accel_dumbbell_z,magnet_dumbbell_x,magnet_dumbbell_y,magnet_dumbbell_z,roll_forearm,pitch_forearm,yaw_forearm,
+                                  gyros_forearm_x,gyros_forearm_y,gyros_forearm_z,accel_forearm_x,accel_forearm_y,accel_forearm_z,magnet_forearm_x,magnet_forearm_y,magnet_forearm_z))
+
+```
+The three important steps conducted were:
+1. Remove N.A. values
+2. Remove columns with many N.A. values
+3. Choose the columns to be used from each dataset
+
+Data Binding
+
+The following lines were used in order to bind the data and make it ready for the prediction
+```{r}
+testit <- rbind(traini[-59, ] , testit)
+testit <- testit[-1,]
+
+```
+Dataset Partition
+
+The dataset was splitted in 90% for training and 10% for validation.
+```{r}
+inTrain <- createDataPartition(y=training$classe, p=0.9, list=FALSE)
+trainit2 <- traini[inTrain,]
+testit2 <- traini[-inTrain,]
+dim(trainit)
+
+```
+Training Model
+
+The predictive model used was randomForests algorithm because it select crucial factors and it has very accurate performance.
+```{r}
+tr_ctrl <- trainControl(method = "cv", number = 4, allowParallel = TRUE)
+rf <- randomForest(classe~., data=trainit2)
+print(rf)
+```
+Cross-Validation
+
+For this step the 10% of the training data was used
+```{r}
+p <- predict(rf, testit2)
+confusionMatrix(p, testit2$classe)
+```
+The results of the cross-validation process were:
+
+Confusion Matrix and Statistics
+
+          Reference
+Prediction   A   B   C   D   E
+         A 418   0   0   0   0
+         B   0 284   0   0   0
+         C   0   0 256   2   0
+         D   0   0   0 238   0
+         E   0   0   0   1 270
+
+Overall Statistics
+                                         
+               Accuracy : 0.998          
+                 95% CI : (0.994, 0.9996)
+    No Information Rate : 0.2845         
+    P-Value [Acc > NIR] : < 2.2e-16      
+                                         
+                  Kappa : 0.9974         
+ Mcnemar's Test P-Value : NA 
+
+Prediction 
+
+The model was applied to the test dataset as below:
+```{r}
+p <- predict(rf, testit)
+confusionMatrix(p, testit$classe)
+```
+
